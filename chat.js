@@ -99,7 +99,7 @@ app.post('/get-users', function (req, res) {
 					for(let i=0;i<responseUser.length;i++) {
 						async.series([
 							function(callback2) {
-								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image from [dbo].[User] u inner join [dbo].[UserImage] ui on ui.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
+								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image from [dbo].[User] u left join [dbo].[UserImage] ui on ui.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
 								console.log(sqlUser);
 								sqlUser.then(function(resultUser) {
 								console.log(resultUser);	
@@ -108,7 +108,7 @@ app.post('/get-users', function (req, res) {
 										roomId: responseUser[i].roomId,
 										OpponentUser: responseUser[i].OpponentUser,
 										name: resultUser[0].FirstName + ' ' +resultUser[0].LastName,
-										displayImage: 'data:' + resultUser[0].ContentType +';base64,'+ Buffer.from(resultUser[0].Image40X40).toString('base64')
+										displayImage: resultUser[0].Image40X40 ? 'data:' + resultUser[0].ContentType +';base64,'+ Buffer.from(resultUser[0].Image40X40).toString('base64') : ''
 									};
 									
 									callback2();
