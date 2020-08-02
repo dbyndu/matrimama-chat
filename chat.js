@@ -99,7 +99,7 @@ app.post('/get-users', function (req, res) {
 					for(let i=0;i<responseUser.length;i++) {
 						async.series([
 							function(callback2) {
-								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image, dbo.GetUserLoginStatus(u.Id) OnlineStatus,CONCAT(DATEDIFF(year,uinfo.DOB, GETDATE()), ' yrs') as Age,uinfo.Height, dbo.GetCityName(uinfo.CityId) as CityId, uinfo.ReligionId from [dbo].[User] u WITH(NOLOCK) left join [dbo].[UserImage] ui WITH(NOLOCK) on ui.UserId = u.Id and ui.IsProfilePicture = 1 left join [dbo].[UserInfo] uinfo WITH(NOLOCK) on uinfo.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
+								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image,(CASE WHEN CHARINDEX('Online', dbo.GetUserLoginStatus(u.Id))>0 THEN 'Online'WHEN CHARINDEX('Offline', dbo.GetUserLoginStatus(u.Id))>0 THEN 'Offline'ELSE 'Away' END) as Status,dbo.GetUserLoginStatus(u.Id) OnlineStatus,CONCAT(DATEDIFF(year,uinfo.DOB, GETDATE()), ' yrs') as Age,uinfo.Height, dbo.GetCityName(uinfo.CityId) as CityId, uinfo.ReligionId from [dbo].[User] u WITH(NOLOCK) left join [dbo].[UserImage] ui WITH(NOLOCK) on ui.UserId = u.Id and ui.IsProfilePicture = 1 left join [dbo].[UserInfo] uinfo WITH(NOLOCK) on uinfo.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
 								console.log(sqlUser);
 								sqlUser.then(function(resultUser) {
 								console.log(resultUser);	
@@ -109,6 +109,7 @@ app.post('/get-users', function (req, res) {
 										OpponentUser: responseUser[i].OpponentUser,
 										name: resultUser[0].FirstName + ' ' +resultUser[0].LastName,
 										displayImage: resultUser[0].Image40X40 ? 'data:' + resultUser[0].ContentType +';base64,'+ Buffer.from(resultUser[0].Image40X40).toString('base64') : '',
+										Status:resultUser[0].Status,
 										onlineStatus:resultUser[0].OnlineStatus,
 										age:resultUser[0].Age,
 										height:resultUser[0].Height,
