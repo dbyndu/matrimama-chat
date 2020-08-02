@@ -99,7 +99,7 @@ app.post('/get-users', function (req, res) {
 					for(let i=0;i<responseUser.length;i++) {
 						async.series([
 							function(callback2) {
-								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image from [dbo].[User] u left join [dbo].[UserImage] ui on ui.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
+								let sqlUser = DB.select("SELECT u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image, dbo.GetUserLoginStatus(u.Id) OnlineStatus,CONCAT(DATEDIFF(year,uinfo.DOB, GETDATE()), ' yrs') as Age,uinfo.Height, uinfo.CityId, uinfo.ReligionId from [dbo].[User] u WITH(NOLOCK) left join [dbo].[UserImage] ui WITH(NOLOCK) on ui.UserId = u.Id and ui.IsProfilePicture = 1 left join [dbo].[UserInfo] uinfo WITH(NOLOCK) on uinfo.UserId = u.Id WHERE u.Id=" + responseUser[i].OpponentUser);
 								console.log(sqlUser);
 								sqlUser.then(function(resultUser) {
 								console.log(resultUser);	
