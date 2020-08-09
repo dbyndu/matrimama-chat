@@ -81,14 +81,18 @@ app.post('/get-users', function (req, res) {
 						if(user_id==resultUser[i].SenderID) {
 							responseUser[i] = {
 								roomId: resultUser[i].Id,
-								OpponentUser: resultUser[i].ReceiverID
+								OpponentUser: resultUser[i].ReceiverID,
+								SenderStatus: 'Sender',
+								IsAccepted:resultUser[i].IsAccepted
 							};
 						}
 						else {
 							if(user_id==resultUser[i].ReceiverID) {
 								responseUser[i] = {
 									roomId: resultUser[i].Id,
-									OpponentUser: resultUser[i].SenderID
+									OpponentUser: resultUser[i].SenderID,
+									SenderStatus: 'Receiver',
+									IsAccepted:resultUser[i].IsAccepted
 								};
 							}
 						}
@@ -107,6 +111,8 @@ app.post('/get-users', function (req, res) {
 									finalResponseUser[i] = {
 										roomId: responseUser[i].roomId,
 										OpponentUser: responseUser[i].OpponentUser,
+										SenderStatus: responseUser[i].SenderStatus,
+										IsAccepted: responseUser[i].IsAccepted,
 										name: resultUser[0].FirstName + ' ' +resultUser[0].LastName,
 										displayImage: resultUser[0].Image40X40 ? 'data:' + resultUser[0].ContentType +';base64,'+ Buffer.from(resultUser[0].Image40X40).toString('base64') : '',
 										Status:resultUser[0].Status,
@@ -149,7 +155,7 @@ app.post('/get-user-chat', function (req, res) {
 	var receiver_user_id = req.body.receiver_user_id;
 	var sender_user_id = req.body.sender_user_id;
 	var finalResponseUser = [];
-	let sqlUser = DB.select("SELECT msg.Id as RoomId,u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image,(CASE WHEN CHARINDEX('Online', dbo.GetUserLoginStatus(u.Id))>0 THEN 'Online'WHEN CHARINDEX('Offline', dbo.GetUserLoginStatus(u.Id))>0THEN 'Offline'ELSE 'Away' END) as Status,dbo.GetUserLoginStatus(u.Id) OnlineStatus,CONCAT(DATEDIFF(year,uinfo.DOB, GETDATE()), ' yrs') as Age,uinfo.Height, dbo.GetCityName(uinfo.CityId) as CityId, uinfo.ReligionId from [dbo].[User] u WITH(NOLOCK)inner join [dbo].[MessageRoom] msg WITH(NOLOCK) on (msg.SenderID = u.Id  OR msg.ReceiverId = u.Id)left join [dbo].[UserImage] ui WITH(NOLOCK) on ui.UserId = u.Id and ui.IsProfilePicture = 1 left join [dbo].[UserInfo] uinfo WITH(NOLOCK) on uinfo.UserId = u.Id WHERE u.Id="+ receiver_user_id +" and (msg.SenderId = " + sender_user_id + " OR msg.ReceiverId = " + sender_user_id + ")" );
+	let sqlUser = DB.select("SELECT msg.Id as RoomId,u.FirstName, u.LastName,ui.ContentType,ui.Image40X40, ui.Image,(CASE WHEN msg.ReceiverId = u.Id THEN 'Sender' ELSE 'Receiver' END) SenderStatus, msg.IsAccepted, (CASE WHEN CHARINDEX('Online', dbo.GetUserLoginStatus(u.Id))>0 THEN 'Online'WHEN CHARINDEX('Offline', dbo.GetUserLoginStatus(u.Id))>0THEN 'Offline'ELSE 'Away' END) as Status,dbo.GetUserLoginStatus(u.Id) OnlineStatus,CONCAT(DATEDIFF(year,uinfo.DOB, GETDATE()), ' yrs') as Age,uinfo.Height, dbo.GetCityName(uinfo.CityId) as CityId, uinfo.ReligionId from [dbo].[User] u WITH(NOLOCK)inner join [dbo].[MessageRoom] msg WITH(NOLOCK) on (msg.SenderID = u.Id  OR msg.ReceiverId = u.Id)left join [dbo].[UserImage] ui WITH(NOLOCK) on ui.UserId = u.Id and ui.IsProfilePicture = 1 left join [dbo].[UserInfo] uinfo WITH(NOLOCK) on uinfo.UserId = u.Id WHERE u.Id="+ receiver_user_id +" and (msg.SenderId = " + sender_user_id + " OR msg.ReceiverId = " + sender_user_id + ")" );
 	console.log(sqlUser);
 	sqlUser.then(function(resultUser) {
 		console.log(resultUser);
@@ -158,7 +164,9 @@ app.post('/get-user-chat', function (req, res) {
 			for(var i=0;i<resultinfo.length;i++) {
 				finalResponseUser[i] = {
 										roomId: resultinfo[i].roomId,
-										OpponentUser: resultinfo[i].OpponentUser,
+										OpponentUser: receiver_user_id,
+										SenderStatus:resultinfo[0].SenderStatus,
+										IsAccepted:resultinfo[0].IsAccepted,
 										name: resultinfo[0].FirstName + ' ' +resultinfo[0].LastName,
 										displayImage: resultinfo[0].Image40X40 ? 'data:' + resultinfo[0].ContentType +';base64,'+ Buffer.from(resultinfo[0].Image40X40).toString('base64') : '',
 										Status:resultinfo[0].Status,
