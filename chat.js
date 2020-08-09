@@ -149,6 +149,32 @@ app.post('/get-users', function (req, res) {
 		}
 	});
 });
+// Get User Status
+app.post('/get-user-status', function (req, res) {
+	var receiver_user_id = req.body.receiver_user_id;
+	var finalResponseUser = [];
+	let sqlChat = DB.select("Select (CASE WHEN CHARINDEX('Online', dbo.GetUserLoginStatus("+receiver_user_id+"))>0 THEN 'Online'WHEN CHARINDEX('Offline', dbo.GetUserLoginStatus("+receiver_user_id + "))>0 THEN 'Offline'ELSE 'Away' END) as Status, dbo.GetUserLoginStatus(" + receiver_user_id + ") as OnlineStatus;");
+	console.log(sqlChat);
+	sqlChat.then(function(resultUser) {
+        var resultinfo = resultUser.recordset;
+		if(resultinfo.length>0) {
+			for(var i=0;i<resultinfo.length;i++) {
+				finalResponseUser[i] = {
+                    Status:resultinfo[0].Status,
+					onlineStatus:resultinfo[0].OnlineStatus
+                };
+			}
+			response = {status:'true',data:finalResponseUser};
+			var jsonString = JSON.stringify(response);
+			res.end(jsonString);
+		}
+		else {
+			response = {status:'false',data:finalResponseUser};
+			var jsonString = JSON.stringify(response);
+			res.end(jsonString);
+		}
+	});
+});
 
 //GetOne User Chat Request
 app.post('/get-user-chat', function (req, res) {
@@ -219,7 +245,6 @@ app.post('/get-chat-history', function (req, res) {
 		}
 	});
 });
-
 
 // usernames which are currently connected to the chat
 var usernames = {};
