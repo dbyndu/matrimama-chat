@@ -4,7 +4,8 @@ var path = require('path');
 
 
 var http = require('http').Server(app);
-var io = require('socket.io')(http);
+//var io = require('socket.io')(http);
+
 var cors = require('cors');
 var bodyParser = require('body-parser');
 var async = require('async');
@@ -14,16 +15,29 @@ let DB = require('./config_mssql.js');
 var port = process.env.PORT || 5000;
 // include fcm
 //var FCM = require('fcm-push');
+const httpsPort = 5001;  
+var https = require('https');  
+var fs = require('fs');  
+var options = {  
+    key: fs.readFileSync('./key.pem', 'utf8'),  
+    cert: fs.readFileSync('./server.crt', 'utf8')   
+};
 
 
 //enables cors
 app.use(cors({
 	'allowedHeaders': ['sessionId', 'Content-Type', 'authorization'],
 	'exposedHeaders': ['sessionId'],
-	'origin': '*',
+	'origin': 'http://localhost:4200',
 	'methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
-	'preflightContinue': true
+	'preflightContinue': true,
+	'credentials': true
 }));
+
+var secureServer1 = https.createServer(options, app).listen(httpsPort, () => {  
+    console.log("Https listening at port " + httpsPort);  
+})
+
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
@@ -58,6 +72,12 @@ app.use('/public', express.static(__dirname + '/public'));
 
 app.get('/custom', function (req, res) {
   res.sendfile(__dirname + '/custom.html');
+});
+
+app.get('/check-server', function (req, res) {
+	var response = {status:'true',data:"Node Server Started"};
+	var jsonString = JSON.stringify(response);
+	res.end(jsonString);
 });
 
 
@@ -249,7 +269,26 @@ app.post('/get-chat-history', function (req, res) {
 // usernames which are currently connected to the chat
 var usernames = {};
 
+//var io = require('socket.io').listen(secureServer1);
 
+var io = require('socket.io')(secureServer1, {
+    handlePreflightRequest: (req, res) => {
+        const headers = {
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Origin": req.headers.origin, //or the specific origin you want to give access to,
+            "Access-Control-Allow-Credentials": true
+        };
+        res.writeHead(200, headers);
+        res.end();
+    }
+});
+
+//io.set('origins', 'http://localhost:4200');
+//io.origins(['http://localhost:4200']);
+
+io.on("connection", () => {
+    console.log("Connected!");
+});
 io.sockets.on('connection', function (socket) {
 	
 	socket.on('room', function(data){
